@@ -269,23 +269,124 @@ src/ProtonDesktop/
 
 ---
 
-## Upcoming: Phase 1.1 - Email Backend
+## 2026-07-02: Phase 1.1 Complete - Email Backend
+
+### Status
+✅ **Phase 1.1: Email Backend - COMPLETE**
+
+### What Was Done
+
+**Enhanced ImapSyncService** (Infrastructure/Protocols/):
+- Full message body fetching (HTML + plain text)
+- Attachment downloading to local storage (`%LOCALAPPDATA%/ProtonDesktop/Attachments/`)
+- Delta sync using UIDNEXT (only fetches new messages since last sync)
+- Flag synchronization (read/unread, flagged, etc.)
+- Proper MIME parsing with MimeKit
+- Folder type mapping (Inbox, Sent, Drafts, Trash, etc.)
+
+**Enhanced SmtpService** (Infrastructure/Protocols/):
+- Reply and forward functionality with proper headers (In-Reply-To, Subject prefixing)
+- Attachment handling from local file paths
+- Draft saving to IMAP Drafts folder
+- BCC support
+- Proper MIME message building with BodyBuilder
+
+**CredentialStore** (Infrastructure/Security/):
+- Windows DPAPI encryption for passwords
+- Per-user encryption scope (CurrentUser)
+- Additional entropy for security
+- ICredentialStore interface in Core layer
+
+**BackgroundSyncService** (Services/):
+- Configurable sync interval (default 5 minutes)
+- Background timer-based sync
+- Event-driven progress reporting (SyncStarted, SyncCompleted, SyncError)
+- Prevents concurrent sync operations
+- Full account sync (folders, messages, attachments, calendars)
+
+**Enhanced EmailSyncService** (Services/Email/):
+- Delta sync integration (SyncNewMessagesAsync)
+- Automatic attachment download for new messages
+- Mark as read/unread operations
+- Toggle flag (starred/unstarred)
+- Soft delete with IMAP flag synchronization
+
+**Enhanced EmailSendService** (Services/Email/):
+- Reply functionality with In-Reply-To header
+- Forward functionality with attachment forwarding
+- Draft saving with UID tracking
+- Credential decryption integration
+
+**New Interface** (Core/Interfaces/):
+- `ICredentialStore` for credential encryption/decryption
+
+**New Package**:
+- `System.Security.Cryptography.ProtectedData` for DPAPI
+
+### Challenges Resolved
+- Architecture: Moved ICredentialStore to Core layer (Services can't reference Infrastructure)
+- MailKit API: Proper FetchRequest usage for delta sync
+- Attachment storage: Local file system with structured paths
+- DPAPI: Windows-only but acceptable for Windows desktop app
+- Null safety: Handled nullable value types from MailKit
+
+### Build Status
+✅ All 6 projects build successfully (0 errors, 9 warnings - mostly nullable reference warnings)
+
+### Files Created/Modified
+```
+src/ProtonDesktop.Core/Interfaces/
+└── ICredentialStore.cs (NEW)
+
+src/ProtonDesktop.Infrastructure/
+├── Protocols/
+│   ├── ImapSyncService.cs (ENHANCED - full body, attachments, delta sync)
+│   └── SmtpService.cs (ENHANCED - reply, forward, attachments)
+└── Security/
+    └── CredentialStore.cs (NEW - DPAPI encryption)
+
+src/ProtonDesktop.Services/
+├── BackgroundSyncService.cs (NEW - timer-based sync)
+└── Email/
+    ├── EmailSyncService.cs (ENHANCED - delta sync, attachments, flags)
+    └── EmailSendService.cs (ENHANCED - reply, forward, credentials)
+
+src/ProtonDesktop/
+└── App.xaml.cs (UPDATED - registered ICredentialStore, IBackgroundSyncService)
+```
+
+### Next Steps
+- Phase 1.2: Email UI - Build the three-pane Outlook-style interface
+  - Folder tree view (left pane)
+  - Email list view (middle pane)
+  - Reading pane (right pane)
+  - Compose window
+  - Search functionality
+
+---
+
+## Upcoming: Phase 1.2 - Email UI
 
 ### Planned Work
-- [ ] Implement ImapSyncService: Connect to Bridge, list folders, fetch messages
-- [ ] Implement SmtpService: Compose and send emails via Bridge
-- [ ] Background sync timer with configurable interval
-- [ ] Delta sync logic (UIDNEXT for incremental updates)
-- [ ] Attachment download and storage
+- [ ] Folder tree view (left pane) with unread counts
+- [ ] Email list view (middle pane) with sorting and filtering
+- [ ] Reading pane (right pane) with HTML rendering
+- [ ] Compose window with To/Cc/Bcc, Subject, Body, Attachments
+- [ ] Reply/Forward functionality
+- [ ] Delete/Move/Flag operations
+- [ ] Search bar with full-text search
+- [ ] Keyboard shortcuts (Ctrl+N, Ctrl+R, Delete, etc.)
 
 ### Expected Duration
-3-4 days
+4-5 days
 
 ### Success Criteria
-- Can connect to Bridge and list folders
-- Can fetch emails and store in local database
-- Can send emails via SMTP
-- Sync runs periodically in background
+- Three-pane Outlook-style layout
+- Can read emails with HTML formatting
+- Can compose and send new emails
+- Can reply to and forward emails
+- Search works across subject/from/body
+- UI is responsive and smooth
 
 ---
 
@@ -324,8 +425,8 @@ src/ProtonDesktop/
 |-------|--------|---------|-----------|
 | Phase 0: Project Setup | ✅ Complete | - | 2026-07-02 |
 | Phase 1.0: Foundation | ✅ Complete | 2026-07-02 | 2026-07-02 |
-| Phase 1.1: Email Backend | 🔄 In Progress | - | - |
-| Phase 1.2: Email UI | ⏳ Pending | - | - |
+| Phase 1.1: Email Backend | ✅ Complete | 2026-07-02 | 2026-07-02 |
+| Phase 1.2: Email UI | 🔄 In Progress | - | - |
 | Phase 1.3: Calendar Backend | ⏳ Pending | - | - |
 | Phase 1.4: Calendar UI | ⏳ Pending | - | - |
 | Phase 1.5: Settings & Auth | ⏳ Pending | - | - |

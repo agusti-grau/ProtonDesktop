@@ -5,6 +5,8 @@ using ProtonDesktop.Core.Interfaces;
 using ProtonDesktop.Infrastructure.Data;
 using ProtonDesktop.Infrastructure.Protocols;
 using ProtonDesktop.Infrastructure.Repositories;
+using ProtonDesktop.Infrastructure.Security;
+using ProtonDesktop.Services;
 using ProtonDesktop.Services.Calendar;
 using ProtonDesktop.Services.Email;
 using ProtonDesktop.Services.Navigation;
@@ -56,6 +58,9 @@ public partial class App : Application
         services.AddTransient<IImapSyncService, ImapSyncService>();
         services.AddTransient<ISmtpService, SmtpService>();
         services.AddTransient<ICalDavSyncService, CalDavSyncService>();
+
+        services.AddSingleton<ICredentialStore, CredentialStore>();
+        services.AddSingleton<IBackgroundSyncService, BackgroundSyncService>();
 
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IReminderService, ReminderService>();

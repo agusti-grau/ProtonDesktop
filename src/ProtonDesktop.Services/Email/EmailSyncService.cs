@@ -9,17 +9,20 @@ public class EmailSyncService
     private readonly IImapSyncService _imapService;
     private readonly IEmailRepository _emailRepository;
     private readonly IAccountRepository _accountRepository;
+    private readonly ICredentialStore _credentialStore;
     private readonly ILogger _logger;
 
     public EmailSyncService(
         IImapSyncService imapService,
         IEmailRepository emailRepository,
         IAccountRepository accountRepository,
+        ICredentialStore credentialStore,
         ILogger logger)
     {
         _imapService = imapService;
         _emailRepository = emailRepository;
         _accountRepository = accountRepository;
+        _credentialStore = credentialStore;
         _logger = logger;
     }
 
@@ -38,53 +41,148 @@ public class EmailSyncService
         {
             _logger.Information("Syncing account {Email}", account.Email);
 
-            if (!await _imapService.ConnectAsync(account))
+            var decryptedPassword = _credentialStore.Decrypt(account.EncryptedPassword);
+            var accountWithPassword = new MailAccount
+            {
+                Id = account.Id,
+                Email = account.Email,
+                DisplayName = account.DisplayName,
+                ImapHost = account.ImapHost,
+                ImapPort = account.ImapPort,
+                SmtpHost = account.SmtpHost,
+                SmtpPort = account.SmtpPort,
+                CalDavHost = account.CalDavHost,
+                CalDavPort = account.CalDavPort,
+                EncryptedPassword = decryptedPassword
+            };
+
+            if (!await _imapService.ConnectAsync(accountWithPassword))
             {
                 _logger.Error("Failed to connect to IMAP for account {Email}", account.Email);
                 return;
             }
 
-            var folders = await _imapService.SyncFoldersAsync(account);
-            foreach (var folder in folders)
+            try
             {
-                var existingFolder = await _emailRepository.GetFolderByPathAsync(account.Id, folder.Path);
-                if (existingFolder == null)
+                var folders = await _imapService.SyncFoldersAsync(accountWithPassword);
+                foreach (var folder in folders)
                 {
-                    folder.MailAccountId = account.Id;
-                    await _emailRepository.CreateFolderAsync(folder);
-                }
-                else
-                {
-                    existingFolder.UidNext = folder.UidNext;
-                    existingFolder.UidValidity = folder.UidValidity;
-                    existingFolder.LastSyncAt = DateTime.UtcNow;
-                    await _emailRepository.UpdateFolderAsync(existingFolder);
-                }
-
-                var messages = await _imapService.SyncMessagesAsync(folder);
-                foreach (var message in messages)
-                {
-                    var existingMessage = await _emailRepository.GetMessageByUidAsync(folder.Id, message.Uid!);
-                    if (existingMessage == null)
+                    var existingFolder = await _emailRepository.GetFolderByPathAsync(account.Id, folder.Path);
+                    if (existingFolder == null)
                     {
-                        message.FolderId = folder.Id;
-                        await _emailRepository.CreateMessageAsync(message);
+                        folder.MailAccountId = account.Id;
+                        await _emailRepository.CreateFolderAsync(folder);
+                    }
+                    else
+                    {
+                        var newMessages = await _imapService.SyncNewMessagesAsync(existingFolder, existingFolder.UidNext);
+                        foreach (var message in newMessages)
+                        {
+                            var existingMessage = await _emailRepository.GetMessageByUidAsync(existingFolder.Id, message.Uid!);
+                            if (existingMessage == null)
+                            {
+                                message.FolderId = existingFolder.Id;
+                                await _emailRepository.CreateMessageAsync(message);
+
+                                if (message.HasAttachments)
+                                {
+                                    var attachments = await _imapService.DownloadAttachmentsAsync(message, existingFolder);
+                                    foreach (var attachment in attachments)
+                                    {
+                                        attachment.EmailMessageId = message.Id;
+                                        await _emailRepository.CreateAttachmentAsync(attachment);
+                                    }
+                                }
+                            }
+                        }
+
+                        existingFolder.UidNext = folder.UidNext;
+                        existingFolder.UidValidity = folder.UidValidity;
+                        existingFolder.LastSyncAt = DateTime.UtcNow;
+                        await _emailRepository.UpdateFolderAsync(existingFolder);
                     }
                 }
+
+                await _emailRepository.UpdateUnreadCountsAsync(account.Id);
+
+                account.LastSyncAt = DateTime.UtcNow;
+                await _accountRepository.UpdateAccountAsync(account);
+
+                _logger.Information("Sync completed for account {Email}", account.Email);
             }
-
-            await _emailRepository.UpdateUnreadCountsAsync(account.Id);
-
-            account.LastSyncAt = DateTime.UtcNow;
-            await _accountRepository.UpdateAccountAsync(account);
-
-            await _imapService.DisconnectAsync();
-
-            _logger.Information("Sync completed for account {Email}", account.Email);
+            finally
+            {
+                await _imapService.DisconnectAsync();
+            }
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "Error syncing account {Email}", account.Email);
         }
+    }
+
+    public async Task MarkAsReadAsync(int messageId)
+    {
+        var message = await _emailRepository.GetMessageByIdAsync(messageId);
+        if (message == null) return;
+
+        message.Flags |= Core.Enums.EmailFlag.Seen;
+        await _emailRepository.UpdateMessageAsync(message);
+
+        var folder = await _emailRepository.GetFolderByIdAsync(message.FolderId);
+        if (folder != null)
+        {
+            await _imapService.UpdateFlagsAsync(folder, message.Uid!, message.Flags);
+        }
+    }
+
+    public async Task MarkAsUnreadAsync(int messageId)
+    {
+        var message = await _emailRepository.GetMessageByIdAsync(messageId);
+        if (message == null) return;
+
+        message.Flags &= ~Core.Enums.EmailFlag.Seen;
+        await _emailRepository.UpdateMessageAsync(message);
+
+        var folder = await _emailRepository.GetFolderByIdAsync(message.FolderId);
+        if (folder != null)
+        {
+            await _imapService.UpdateFlagsAsync(folder, message.Uid!, message.Flags);
+        }
+    }
+
+    public async Task ToggleFlagAsync(int messageId)
+    {
+        var message = await _emailRepository.GetMessageByIdAsync(messageId);
+        if (message == null) return;
+
+        if (message.Flags.HasFlag(Core.Enums.EmailFlag.Flagged))
+            message.Flags &= ~Core.Enums.EmailFlag.Flagged;
+        else
+            message.Flags |= Core.Enums.EmailFlag.Flagged;
+
+        await _emailRepository.UpdateMessageAsync(message);
+
+        var folder = await _emailRepository.GetFolderByIdAsync(message.FolderId);
+        if (folder != null)
+        {
+            await _imapService.UpdateFlagsAsync(folder, message.Uid!, message.Flags);
+        }
+    }
+
+    public async Task DeleteMessageAsync(int messageId)
+    {
+        var message = await _emailRepository.GetMessageByIdAsync(messageId);
+        if (message == null) return;
+
+        var folder = await _emailRepository.GetFolderByIdAsync(message.FolderId);
+        if (folder != null)
+        {
+            message.Flags |= Core.Enums.EmailFlag.Deleted;
+            await _emailRepository.UpdateMessageAsync(message);
+            await _imapService.UpdateFlagsAsync(folder, message.Uid!, message.Flags);
+        }
+
+        await _emailRepository.SoftDeleteMessageAsync(messageId);
     }
 }
