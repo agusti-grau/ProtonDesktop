@@ -128,26 +128,164 @@ Created comprehensive documentation:
 
 ---
 
-## Upcoming: Phase 1.0 - Foundation
+## 2026-07-02: Phase 1.0 Complete - Foundation
+
+### Status
+✅ **Phase 1.0: Foundation - COMPLETE**
+
+### What Was Done
+
+**Core Domain Models** (ProtonDesktop.Core/Models/):
+- `MailAccount` - Account configuration with IMAP/SMTP/CalDAV connection settings
+- `EmailFolder` - Folder hierarchy with UID tracking for sync
+- `EmailMessage` - Email messages with flags, attachments, HTML/plain body
+- `EmailAttachment` - Attachment metadata with local file paths
+- `Contact` - Address book contacts
+- `Calendar` - Calendar collections with sync tokens
+- `CalendarEvent` - Events with recurrence rules and reminders
+- `CalendarReminder` - Reminder configurations
+
+**Enums** (ProtonDesktop.Core/Enums/):
+- `EmailFlag` - Flags (Seen, Flagged, Answered, Forwarded, Draft, Deleted)
+- `FolderType` - Folder types (Inbox, Sent, Drafts, Trash, Spam, Archive, Junk, Custom)
+- `EventRecurrence` - Recurrence patterns (None, Daily, Weekly, Monthly, Yearly)
+- `ReminderType` - Reminder types (Popup, Email, Sound)
+
+**Service Interfaces** (ProtonDesktop.Core/Interfaces/):
+- `IEmailRepository` - Email CRUD operations
+- `ICalendarRepository` - Calendar and event CRUD operations
+- `IAccountRepository` - Account management
+- `IImapSyncService` - IMAP sync operations
+- `ISmtpService` - SMTP send operations
+- `ICalDavSyncService` - CalDAV sync operations
+- `IReminderService` - Reminder scheduling
+- `INavigationService` - View navigation
+
+**Infrastructure** (ProtonDesktop.Infrastructure/):
+- `AppDbContext` - EF Core DbContext with all entity configurations
+- `DesignTimeDbContextFactory` - Design-time factory for migrations
+- Entity configurations for all 8 entities with proper indexes and relationships
+- `AccountRepository` - Account CRUD implementation
+- `EmailRepository` - Email CRUD with search and unread counts
+- `CalendarRepository` - Calendar/event CRUD with reminder queries
+- `ImapSyncService` - MailKit IMAP client wrapper
+- `SmtpService` - MailKit SMTP client wrapper with draft saving
+- `CalDavSyncService` - CalDAV stub (to be fully implemented in Phase 1.3)
+
+**Services** (ProtonDesktop.Services/):
+- `NavigationService` - View navigation implementation
+- `EmailSyncService` - Orchestrates email sync from IMAP to local DB
+- `EmailSendService` - Orchestrates email sending via SMTP
+- `CalendarSyncService` - Orchestrates calendar sync from CalDAV to local DB
+- `ReminderService` - Background reminder checking with timer
+
+**Application** (ProtonDesktop/):
+- `App.xaml.cs` - DI container setup with all services registered
+- Serilog logging configuration (Debug + File sinks)
+- Automatic database migration on startup
+
+**Database**:
+- Initial migration created and applied
+- SQLite database at `protondesktop.db`
+
+### Challenges Resolved
+- MailKit API changes: `FetchAsync` requires `FetchRequest` object (not `MessageSummaryItems`)
+- MailKit API changes: `AppendAsync` requires `AppendRequest` object (not `MimeMessage`)
+- EF Core design-time: Required `IDesignTimeDbContextFactory` for migrations
+- Package version compatibility: EF Core Design 10.x incompatible with .NET 8, used 8.0.*
+- Serilog package: Needed to add to Services and Infrastructure projects separately
+
+### Build Status
+✅ All 6 projects build successfully with 0 errors, 0 warnings
+
+### Files Created/Modified
+```
+src/ProtonDesktop.Core/
+├── Enums/
+│   ├── EmailFlag.cs
+│   ├── FolderType.cs
+│   ├── EventRecurrence.cs
+│   └── ReminderType.cs
+├── Interfaces/
+│   ├── IEmailRepository.cs
+│   ├── ICalendarRepository.cs
+│   ├── IAccountRepository.cs
+│   ├── IImapSyncService.cs
+│   ├── ISmtpService.cs
+│   ├── ICalDavSyncService.cs
+│   ├── IReminderService.cs
+│   └── INavigationService.cs
+└── Models/
+    ├── MailAccount.cs
+    ├── EmailFolder.cs
+    ├── EmailMessage.cs
+    ├── EmailAttachment.cs
+    ├── Contact.cs
+    ├── Calendar.cs
+    ├── CalendarEvent.cs
+    └── CalendarReminder.cs
+
+src/ProtonDesktop.Infrastructure/
+├── Data/
+│   ├── AppDbContext.cs
+│   ├── DesignTimeDbContextFactory.cs
+│   ├── Configurations/
+│   │   ├── MailAccountConfiguration.cs
+│   │   ├── EmailFolderConfiguration.cs
+│   │   ├── EmailMessageConfiguration.cs
+│   │   ├── EmailAttachmentConfiguration.cs
+│   │   ├── ContactConfiguration.cs
+│   │   ├── CalendarConfiguration.cs
+│   │   ├── CalendarEventConfiguration.cs
+│   │   └── CalendarReminderConfiguration.cs
+│   └── Migrations/
+│       └── (InitialCreate migration files)
+├── Repositories/
+│   ├── AccountRepository.cs
+│   ├── EmailRepository.cs
+│   └── CalendarRepository.cs
+└── Protocols/
+    ├── ImapSyncService.cs
+    ├── SmtpService.cs
+    └── CalDavSyncService.cs
+
+src/ProtonDesktop.Services/
+├── Navigation/
+│   └── NavigationService.cs
+├── Email/
+│   ├── EmailSyncService.cs
+│   └── EmailSendService.cs
+└── Calendar/
+    ├── CalendarSyncService.cs
+    └── ReminderService.cs
+
+src/ProtonDesktop/
+└── App.xaml.cs (updated with DI + Serilog)
+```
+
+### Next Steps
+- Phase 1.1: Email Backend - Complete IMAP/SMTP implementation with full message body fetching
+- Phase 1.2: Email UI - Build the three-pane Outlook-style interface
+
+---
+
+## Upcoming: Phase 1.1 - Email Backend
 
 ### Planned Work
-- [ ] Create domain models in Core project
-- [ ] Define service interfaces
-- [ ] Set up EF Core DbContext with SQLite
-- [ ] Create initial database migration
-- [ ] Configure DI container in App.xaml.cs
-- [ ] Set up Serilog logging
-- [ ] Build main window shell with navigation
-- [ ] Implement INavigationService
+- [ ] Implement ImapSyncService: Connect to Bridge, list folders, fetch messages
+- [ ] Implement SmtpService: Compose and send emails via Bridge
+- [ ] Background sync timer with configurable interval
+- [ ] Delta sync logic (UIDNEXT for incremental updates)
+- [ ] Attachment download and storage
 
 ### Expected Duration
-2-3 days
+3-4 days
 
 ### Success Criteria
-- App launches and shows main window
-- Database is created on first run
-- Navigation between views works
-- All services resolvable via DI
+- Can connect to Bridge and list folders
+- Can fetch emails and store in local database
+- Can send emails via SMTP
+- Sync runs periodically in background
 
 ---
 
@@ -185,8 +323,8 @@ Created comprehensive documentation:
 | Phase | Status | Started | Completed |
 |-------|--------|---------|-----------|
 | Phase 0: Project Setup | ✅ Complete | - | 2026-07-02 |
-| Phase 1.0: Foundation | 🔄 In Progress | - | - |
-| Phase 1.1: Email Backend | ⏳ Pending | - | - |
+| Phase 1.0: Foundation | ✅ Complete | 2026-07-02 | 2026-07-02 |
+| Phase 1.1: Email Backend | 🔄 In Progress | - | - |
 | Phase 1.2: Email UI | ⏳ Pending | - | - |
 | Phase 1.3: Calendar Backend | ⏳ Pending | - | - |
 | Phase 1.4: Calendar UI | ⏳ Pending | - | - |
