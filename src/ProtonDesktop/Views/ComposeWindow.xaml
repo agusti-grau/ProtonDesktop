@@ -1,0 +1,146 @@
+<Window x:Class="ProtonDesktop.Views.ComposeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:conv="clr-namespace:ProtonDesktop.Converters"
+        mc:Ignorable="d"
+        Title="New Message" 
+        Height="600" 
+        Width="800"
+        WindowStartupLocation="CenterOwner"
+        Background="#F3F3F3">
+
+    <Window.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- To -->
+        <Grid Grid.Row="0" Margin="0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="To:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+            <TextBox Grid.Column="1" Text="{Binding ToAddresses, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+        </Grid>
+
+        <!-- Cc -->
+        <Grid Grid.Row="1" Margin="0,5" Visibility="{Binding ShowCc, Converter={StaticResource BoolToVisibility}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Cc:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+            <TextBox Grid.Column="1" Text="{Binding CcAddresses, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+        </Grid>
+
+        <!-- Bcc -->
+        <Grid Grid.Row="2" Margin="0,5" Visibility="{Binding ShowBcc, Converter={StaticResource BoolToVisibility}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Bcc:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+            <TextBox Grid.Column="1" Text="{Binding BccAddresses, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+        </Grid>
+
+        <!-- Subject -->
+        <Grid Grid.Row="3" Margin="0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Subject:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+            <TextBox Grid.Column="1" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+        </Grid>
+
+        <!-- Options -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,5">
+            <Button Content="Cc" Command="{Binding ToggleCcCommand}" Padding="10,3" Margin="0,0,5,0"/>
+            <Button Content="Bcc" Command="{Binding ToggleBccCommand}" Padding="10,3" Margin="0,0,5,0"/>
+            <Button Content="Attach File" Command="{Binding AddAttachmentCommand}" Padding="10,3"/>
+            <CheckBox Content="HTML" IsChecked="{Binding IsHtml}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Attachments -->
+        <ItemsControl Grid.Row="5" ItemsSource="{Binding Attachments}" Margin="0,5" MaxHeight="100">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border BorderBrush="#E1E1E1" BorderThickness="1" Padding="5" Margin="0,2" Background="White">
+                        <DockPanel>
+                            <Button Content="X" 
+                                    Command="{Binding DataContext.RemoveAttachmentCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    DockPanel.Dock="Right"
+                                    Padding="5,2"
+                                    Margin="5,0,0,0"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📎" Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding FileName}"/>
+                                <TextBlock Text="{Binding SizeDisplay}" Foreground="#666666" Margin="10,0,0,0"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Body -->
+        <TextBox Grid.Row="6" 
+                 Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}"
+                 TextWrapping="Wrap"
+                 AcceptsReturn="True"
+                 VerticalScrollBarVisibility="Auto"
+                 Padding="5"
+                 MinHeight="200"
+                 Margin="0,5"/>
+
+        <!-- Status and Buttons -->
+        <Grid Grid.Row="7" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" 
+                       Text="{Binding StatusMessage}" 
+                       VerticalAlignment="Center"
+                       Foreground="#666666"/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Content="Save Draft" 
+                        Command="{Binding SaveDraftCommand}"
+                        Padding="15,5"
+                        Margin="0,0,5,0"/>
+                <Button Content="Send" 
+                        Command="{Binding SendCommand}"
+                        Padding="15,5"
+                        Background="#0078D4"
+                        Foreground="White"
+                        IsEnabled="{Binding IsSending, Converter={StaticResource InverseBoolToVisibility}}"/>
+            </StackPanel>
+
+            <ProgressBar Grid.Column="2" 
+                         Width="100" 
+                         Height="4"
+                         IsIndeterminate="True"
+                         Visibility="{Binding IsSending, Converter={StaticResource BoolToVisibility}}"
+                         Margin="10,0,0,0"
+                         VerticalAlignment="Center"/>
+        </Grid>
+    </Grid>
+</Window>

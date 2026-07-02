@@ -10,6 +10,7 @@ using ProtonDesktop.Services;
 using ProtonDesktop.Services.Calendar;
 using ProtonDesktop.Services.Email;
 using ProtonDesktop.Services.Navigation;
+using ProtonDesktop.ViewModels;
 using Serilog;
 
 namespace ProtonDesktop;
@@ -68,6 +69,8 @@ public partial class App : Application
         services.AddTransient<EmailSyncService>();
         services.AddTransient<EmailSendService>();
         services.AddTransient<CalendarSyncService>();
+
+        services.AddTransient<MainViewModel>();
     }
 
     protected override void OnExit(ExitEventArgs e)
