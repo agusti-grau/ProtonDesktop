@@ -10,12 +10,13 @@ using ProtonDesktop.Services;
 using ProtonDesktop.Services.Calendar;
 using ProtonDesktop.Services.Email;
 using ProtonDesktop.Services.Navigation;
+using ProtonDesktop.Services.Notifications;
 using ProtonDesktop.ViewModels;
 using Serilog;
 
 namespace ProtonDesktop;
 
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
 
@@ -65,12 +66,17 @@ public partial class App : Application
 
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IReminderService, ReminderService>();
+        services.AddSingleton<ISystemTrayService, SystemTrayService>();
+        services.AddSingleton<IKeyboardShortcutService, KeyboardShortcutService>();
 
         services.AddTransient<EmailSyncService>();
         services.AddTransient<EmailSendService>();
         services.AddTransient<CalendarSyncService>();
 
         services.AddTransient<MainViewModel>();
+        services.AddTransient<ProtonDesktop.ViewModels.Calendar.CalendarViewModel>();
+        services.AddTransient<ProtonDesktop.ViewModels.Calendar.EventEditorViewModel>();
+        services.AddTransient<ProtonDesktop.ViewModels.Settings.SettingsViewModel>();
     }
 
     protected override void OnExit(ExitEventArgs e)
