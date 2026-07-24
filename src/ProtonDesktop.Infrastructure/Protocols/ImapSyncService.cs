@@ -33,6 +33,19 @@ public class ImapSyncService : IImapSyncService
         try
         {
             _client = new ImapClient();
+
+            // ProtonMail Bridge uses a self-signed cert on localhost; accept it for local connections
+            _client.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
+            {
+                var isLocalhost = account.ImapHost is "127.0.0.1" or "localhost" or "::1";
+                if (isLocalhost)
+                {
+                    _logger.Warning("Accepting self-signed certificate for local Bridge connection");
+                    return true;
+                }
+                return sslPolicyErrors == System.Net.Security.SslPolicyErrors.None;
+            };
+
             await _client.ConnectAsync(account.ImapHost, account.ImapPort, SecureSocketOptions.StartTls);
             await _client.AuthenticateAsync(account.Email, account.EncryptedPassword);
             _logger.Information("Connected to IMAP {Host}:{Port}", account.ImapHost, account.ImapPort);

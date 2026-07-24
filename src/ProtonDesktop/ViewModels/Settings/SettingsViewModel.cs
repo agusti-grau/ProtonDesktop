@@ -130,39 +130,6 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task AddAccountAsync()
-    {
-        try
-        {
-            var newAccount = new MailAccount
-            {
-                Email = "user@proton.me",
-                DisplayName = "User",
-                ImapHost = ImapHost,
-                ImapPort = ImapPort,
-                SmtpHost = SmtpHost,
-                SmtpPort = SmtpPort,
-                CalDavHost = CaldavHost,
-                CalDavPort = CaldavPort,
-                EncryptedPassword = _credentialStore.Encrypt("password"),
-                IsDefault = !Accounts.Any()
-            };
-
-            var createdAccount = await _accountRepository.CreateAccountAsync(newAccount);
-            Accounts.Add(createdAccount);
-            SelectedAccount = createdAccount;
-
-            StatusMessage = "Account added successfully";
-            _logger.Information("Added new account {Email}", newAccount.Email);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error adding account");
-            StatusMessage = "Error adding account";
-        }
-    }
-
-    [RelayCommand]
     private async Task RemoveAccountAsync()
     {
         try

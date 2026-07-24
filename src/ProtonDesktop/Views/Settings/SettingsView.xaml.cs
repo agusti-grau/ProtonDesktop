@@ -25,4 +25,18 @@ public partial class SettingsView : Window
             await viewModel.LoadCommand.ExecuteAsync(null);
         }
     }
+
+    private async void AddAccount_Click(object sender, RoutedEventArgs e)
+    {
+        var addAccountVm = App.Services.GetService(typeof(AddAccountViewModel)) as AddAccountViewModel;
+        if (addAccountVm == null) return;
+
+        var dialog = new AddAccountDialog(addAccountVm) { Owner = this };
+        dialog.ShowDialog();
+
+        if (dialog.Saved && DataContext is SettingsViewModel vm)
+        {
+            await vm.LoadCommand.ExecuteAsync(null);
+        }
+    }
 }

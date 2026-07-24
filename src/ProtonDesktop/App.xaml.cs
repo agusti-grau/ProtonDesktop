@@ -97,6 +97,7 @@ public partial class App : System.Windows.Application
         services.AddTransient<ProtonDesktop.ViewModels.Calendar.CalendarViewModel>();
         services.AddTransient<ProtonDesktop.ViewModels.Calendar.EventEditorViewModel>();
         services.AddTransient<ProtonDesktop.ViewModels.Settings.SettingsViewModel>();
+        services.AddTransient<ProtonDesktop.ViewModels.Settings.AddAccountViewModel>();
     }
 
     private void OnSyncCompleted(object? sender, SyncProgressEventArgs e)

@@ -26,6 +26,13 @@ public class SmtpService : ISmtpService
             var mimeMessage = BuildMimeMessage(account, message, attachments);
 
             using var client = new SmtpClient();
+
+            var isLocalhost = account.SmtpHost is "127.0.0.1" or "localhost" or "::1";
+            if (isLocalhost)
+            {
+                client.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            }
+
             await client.ConnectAsync(account.SmtpHost, account.SmtpPort, SecureSocketOptions.StartTls);
             await client.AuthenticateAsync(account.Email, account.EncryptedPassword);
             await client.SendAsync(mimeMessage);
@@ -50,6 +57,13 @@ public class SmtpService : ISmtpService
             var mimeMessage = BuildMimeMessage(account, message, attachments);
 
             using var client = new ImapClient();
+
+            var isLocalhost = account.ImapHost is "127.0.0.1" or "localhost" or "::1";
+            if (isLocalhost)
+            {
+                client.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            }
+
             await client.ConnectAsync(account.ImapHost, account.ImapPort, SecureSocketOptions.StartTls);
             await client.AuthenticateAsync(account.Email, account.EncryptedPassword);
 
