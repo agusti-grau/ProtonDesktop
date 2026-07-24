@@ -7,6 +7,7 @@ public interface IKeyboardShortcutService
 {
     void RegisterShortcut(Key key, ModifierKeys modifiers, Action action);
     void UnregisterShortcut(Key key, ModifierKeys modifiers);
+    bool HandleKeyDown(Key key, ModifierKeys modifiers);
 }
 
 public class KeyboardShortcutService : IKeyboardShortcutService

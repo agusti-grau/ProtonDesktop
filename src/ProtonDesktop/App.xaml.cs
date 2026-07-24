@@ -19,8 +19,11 @@ namespace ProtonDesktop;
 public partial class App : System.Windows.Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
+    private ISystemTrayService? _systemTrayService;
+    private IBackgroundSyncService? _backgroundSyncService;
+    private IReminderService? _reminderService;
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -40,6 +43,23 @@ public partial class App : System.Windows.Application
         {
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             context.Database.Migrate();
+        }
+
+        _systemTrayService = Services.GetService<ISystemTrayService>();
+        _systemTrayService?.Initialize();
+
+        _backgroundSyncService = Services.GetService<IBackgroundSyncService>();
+        if (_backgroundSyncService != null)
+        {
+            _backgroundSyncService.SyncCompleted += OnSyncCompleted;
+            await _backgroundSyncService.StartAsync(5);
+        }
+
+        _reminderService = Services.GetService<IReminderService>();
+        if (_reminderService != null)
+        {
+            _reminderService.ReminderTriggered += OnReminderTriggered;
+            await _reminderService.StartAsync();
         }
 
         var mainWindow = new MainWindow();
@@ -79,9 +99,54 @@ public partial class App : System.Windows.Application
         services.AddTransient<ProtonDesktop.ViewModels.Settings.SettingsViewModel>();
     }
 
-    protected override void OnExit(ExitEventArgs e)
+    private void OnSyncCompleted(object? sender, SyncProgressEventArgs e)
+    {
+        Dispatcher.Invoke(async () =>
+        {
+            var emailRepo = Services.GetService<IEmailRepository>();
+            var accountRepo = Services.GetService<IAccountRepository>();
+            if (emailRepo != null && accountRepo != null)
+            {
+                var account = await accountRepo.GetDefaultAccountAsync();
+                if (account != null)
+                {
+                    var folders = await emailRepo.GetFoldersAsync(account.Id);
+                    var totalUnread = folders.Sum(f => f.UnreadCount);
+                    _systemTrayService?.UpdateUnreadCount(totalUnread);
+                }
+            }
+        });
+    }
+
+    private void OnReminderTriggered(object? sender, ReminderEventArgs e)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            _systemTrayService?.ShowNotification(
+                "Calendar Reminder",
+                $"{e.EventTitle} starts at {e.EventStart.ToLocalTime():HH:mm}");
+        });
+    }
+
+    protected override async void OnExit(ExitEventArgs e)
     {
         Log.Information("ProtonDesktop exiting");
+
+        if (_backgroundSyncService != null)
+        {
+            await _backgroundSyncService.StopAsync();
+        }
+
+        if (_reminderService != null)
+        {
+            await _reminderService.StopAsync();
+        }
+
+        if (_systemTrayService is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
+
         Log.CloseAndFlush();
         base.OnExit(e);
     }

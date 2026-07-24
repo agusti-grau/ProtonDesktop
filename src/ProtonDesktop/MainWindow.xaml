@@ -23,6 +23,33 @@
         <conv:UnreadCountToVisibilityConverter x:Key="UnreadCountToVisibility"/>
         <conv:NullToVisibilityConverter x:Key="NullToVisibility"/>
         <conv:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVisibility"/>
+
+        <Style x:Key="NavButton" TargetType="Button">
+            <Setter Property="Width" Value="60"/>
+            <Setter Property="Height" Value="50"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3D3D3D"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#0078D4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -51,7 +78,24 @@
         </Border>
 
         <!-- Main Content Area -->
-        <Grid Grid.Row="1" Margin="10">
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Navigation Sidebar -->
+            <Border Grid.Column="0" Background="#2B2B2B">
+                <StackPanel>
+                    <Button Content="✉" Style="{StaticResource NavButton}" Tag="Mail" Click="NavMail_Click" ToolTip="Mail"/>
+                    <Button Content="📅" Style="{StaticResource NavButton}" Tag="Calendar" Click="NavCalendar_Click" ToolTip="Calendar"/>
+                    <Separator Background="#444" Margin="10,5"/>
+                    <Button Content="⚙" Style="{StaticResource NavButton}" Tag="Settings" Click="NavSettings_Click" ToolTip="Settings" VerticalAlignment="Bottom"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Content Area -->
+            <Grid Grid.Column="1" Margin="10" x:Name="MailContent">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="250" MinWidth="200"/>
                 <ColumnDefinition Width="5"/>
@@ -274,6 +318,7 @@
                     </ScrollViewer>
                 </Grid>
             </Border>
+            </Grid>
         </Grid>
 
         <!-- Status Bar -->
