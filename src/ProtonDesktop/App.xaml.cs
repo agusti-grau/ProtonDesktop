@@ -41,7 +41,8 @@ public partial class App : System.Windows.Application
 
         using (var scope = Services.CreateScope())
         {
-            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var contextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+            using var context = contextFactory.CreateDbContext();
             context.Database.Migrate();
         }
 
@@ -68,7 +69,7 @@ public partial class App : System.Windows.Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
-        services.AddDbContext<AppDbContext>(options =>
+        services.AddDbContextFactory<AppDbContext>(options =>
             options.UseSqlite("Data Source=protondesktop.db"));
 
         services.AddSingleton<ILogger>(sp => Log.Logger);
