@@ -63,7 +63,7 @@
                     <ColumnDefinition Width="90"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="50"/>
-                    <ColumnDefinition Width="70"/>
+                    <ColumnDefinition Width="85"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -78,15 +78,15 @@
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="Port:" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding ImapPort, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="SMTP:" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SmtpHost, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="Port:" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding SmtpPort, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
-
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="CalDAV:" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding CaldavHost, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="SMTP:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SmtpHost, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
                 <TextBlock Grid.Row="2" Grid.Column="2" Text="Port:" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding CaldavPort, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+                <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding SmtpPort, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="CalDAV:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding CaldavHost, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+                <TextBlock Grid.Row="4" Grid.Column="2" Text="Port:" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                <TextBox Grid.Row="4" Grid.Column="3" Text="{Binding CaldavPort, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
             </Grid>
         </Expander>
 

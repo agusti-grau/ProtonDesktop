@@ -162,11 +162,12 @@ public class ImapSyncService : IImapSyncService
             startUid = parsedUid;
         }
 
-        var query = startUid.HasValue
-            ? SearchQuery.Uids(new[] { startUid.Value })
-            : SearchQuery.All;
+        var allUids = await imapFolder.SearchAsync(SearchQuery.All);
 
-        var uids = await imapFolder.SearchAsync(query);
+        var uids = startUid.HasValue
+            ? allUids.Where(u => u.Id >= startUid.Value.Id).ToList()
+            : allUids.ToList();
+
         if (uids.Count == 0)
         {
             await imapFolder.CloseAsync(false);

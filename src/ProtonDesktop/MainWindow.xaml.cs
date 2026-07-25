@@ -103,9 +103,15 @@ public partial class MainWindow : Window
         Focus();
     }
 
-    private void NavMail_Click(object sender, RoutedEventArgs e)
+    private async void NavMail_Click(object sender, RoutedEventArgs e)
     {
         MailContent.Visibility = Visibility.Visible;
+
+        // Reload if the view model was created before an account existed
+        if (_viewModel?.FolderTree == null)
+        {
+            await _viewModel.LoadAsync();
+        }
     }
 
     private void NavCalendar_Click(object sender, RoutedEventArgs e)
@@ -121,13 +127,19 @@ public partial class MainWindow : Window
         }
     }
 
-    private void NavSettings_Click(object sender, RoutedEventArgs e)
+    private async void NavSettings_Click(object sender, RoutedEventArgs e)
     {
         var settingsWindow = new SettingsView
         {
             Owner = this
         };
         settingsWindow.ShowDialog();
+
+        // Reload after settings closed - account may have been added/changed
+        if (_viewModel != null)
+        {
+            await _viewModel.LoadAsync();
+        }
     }
 
     private async void FolderTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)

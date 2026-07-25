@@ -15,6 +15,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IEmailRepository _emailRepository;
     private readonly IImapSyncService _imapSyncService;
     private readonly IBackgroundSyncService _backgroundSyncService;
+    private readonly EmailSyncService _emailSyncService;
     private readonly EmailSendService _emailSendService;
     private readonly ILogger _logger;
 
@@ -41,6 +42,7 @@ public partial class MainViewModel : ObservableObject
         IEmailRepository emailRepository,
         IImapSyncService imapSyncService,
         IBackgroundSyncService backgroundSyncService,
+        EmailSyncService emailSyncService,
         EmailSendService emailSendService,
         ILogger logger)
     {
@@ -48,6 +50,7 @@ public partial class MainViewModel : ObservableObject
         _emailRepository = emailRepository;
         _imapSyncService = imapSyncService;
         _backgroundSyncService = backgroundSyncService;
+        _emailSyncService = emailSyncService;
         _emailSendService = emailSendService;
         _logger = logger;
 
@@ -109,13 +112,21 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
 
-            await _backgroundSyncService.StartAsync(1);
-            await Task.Delay(1000);
-            await _backgroundSyncService.StopAsync();
+            // Direct, awaited sync - not the background timer
+            await _emailSyncService.SyncAccountAsync(defaultAccount);
 
-            if (FolderTree != null)
+            if (FolderTree == null)
+            {
+                await LoadAsync();
+            }
+            else
             {
                 await FolderTree.LoadAsync();
+
+                if (FolderTree.SelectedFolder != null && EmailList != null)
+                {
+                    await EmailList.LoadMessagesAsync(FolderTree.SelectedFolder.Id);
+                }
             }
 
             SyncStatus = "Sync complete";

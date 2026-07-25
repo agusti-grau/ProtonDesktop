@@ -165,39 +165,49 @@ public class BackgroundSyncService : IBackgroundSyncService
             foreach (var folder in folders)
             {
                 var existingFolder = await _emailRepository.GetFolderByPathAsync(account.Id, folder.Path);
+
+                Core.Models.EmailFolder targetFolder;
+                string? lastUid;
+
                 if (existingFolder == null)
                 {
+                    // New folder: create it, then fetch ALL messages (lastUid = null)
                     folder.MailAccountId = account.Id;
-                    await _emailRepository.CreateFolderAsync(folder);
+                    targetFolder = await _emailRepository.CreateFolderAsync(folder);
+                    lastUid = null;
                 }
                 else
                 {
-                    var newMessages = await _imapSyncService.SyncNewMessagesAsync(existingFolder, existingFolder.UidNext);
-                    foreach (var message in newMessages)
-                    {
-                        var existingMessage = await _emailRepository.GetMessageByUidAsync(existingFolder.Id, message.Uid!);
-                        if (existingMessage == null)
-                        {
-                            message.FolderId = existingFolder.Id;
-                            await _emailRepository.CreateMessageAsync(message);
+                    // Existing folder: fetch only messages newer than stored UidNext
+                    targetFolder = existingFolder;
+                    lastUid = existingFolder.UidNext;
+                }
 
-                            if (message.HasAttachments)
+                var newMessages = await _imapSyncService.SyncNewMessagesAsync(targetFolder, lastUid);
+                foreach (var message in newMessages)
+                {
+                    var existingMessage = await _emailRepository.GetMessageByUidAsync(targetFolder.Id, message.Uid!);
+                    if (existingMessage == null)
+                    {
+                        message.FolderId = targetFolder.Id;
+                        await _emailRepository.CreateMessageAsync(message);
+
+                        if (message.HasAttachments)
+                        {
+                            var attachments = await _imapSyncService.DownloadAttachmentsAsync(message, targetFolder);
+                            foreach (var attachment in attachments)
                             {
-                                var attachments = await _imapSyncService.DownloadAttachmentsAsync(message, existingFolder);
-                                foreach (var attachment in attachments)
-                                {
-                                    attachment.EmailMessageId = message.Id;
-                                    await _emailRepository.CreateAttachmentAsync(attachment);
-                                }
+                                attachment.EmailMessageId = message.Id;
+                                await _emailRepository.CreateAttachmentAsync(attachment);
                             }
                         }
                     }
-
-                    existingFolder.UidNext = folder.UidNext;
-                    existingFolder.UidValidity = folder.UidValidity;
-                    existingFolder.LastSyncAt = DateTime.UtcNow;
-                    await _emailRepository.UpdateFolderAsync(existingFolder);
                 }
+
+                targetFolder.UidNext = folder.UidNext;
+                targetFolder.UidValidity = folder.UidValidity;
+                targetFolder.LastSyncAt = DateTime.UtcNow;
+                await _emailRepository.UpdateFolderAsync(targetFolder);
             }
 
             await _emailRepository.UpdateUnreadCountsAsync(account.Id);
