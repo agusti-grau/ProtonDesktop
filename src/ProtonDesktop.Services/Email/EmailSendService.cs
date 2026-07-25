@@ -8,18 +8,15 @@ public class EmailSendService
 {
     private readonly ISmtpService _smtpService;
     private readonly IEmailRepository _emailRepository;
-    private readonly ICredentialStore _credentialStore;
     private readonly ILogger _logger;
 
     public EmailSendService(
         ISmtpService smtpService,
         IEmailRepository emailRepository,
-        ICredentialStore credentialStore,
         ILogger logger)
     {
         _smtpService = smtpService;
         _emailRepository = emailRepository;
-        _credentialStore = credentialStore;
         _logger = logger;
     }
 
@@ -29,22 +26,7 @@ public class EmailSendService
         {
             _logger.Information("Sending email to {To}", message.ToAddresses);
 
-            var decryptedPassword = _credentialStore.Decrypt(account.EncryptedPassword);
-            var accountWithPassword = new MailAccount
-            {
-                Id = account.Id,
-                Email = account.Email,
-                DisplayName = account.DisplayName,
-                ImapHost = account.ImapHost,
-                ImapPort = account.ImapPort,
-                SmtpHost = account.SmtpHost,
-                SmtpPort = account.SmtpPort,
-                CalDavHost = account.CalDavHost,
-                CalDavPort = account.CalDavPort,
-                EncryptedPassword = decryptedPassword
-            };
-
-            await _smtpService.SendAsync(accountWithPassword, message, attachments);
+            await _smtpService.SendAsync(account, message, attachments);
 
             message.Flags |= Core.Enums.EmailFlag.Seen;
             message.SentAt = DateTime.UtcNow;
@@ -64,22 +46,7 @@ public class EmailSendService
         {
             _logger.Information("Saving draft");
 
-            var decryptedPassword = _credentialStore.Decrypt(account.EncryptedPassword);
-            var accountWithPassword = new MailAccount
-            {
-                Id = account.Id,
-                Email = account.Email,
-                DisplayName = account.DisplayName,
-                ImapHost = account.ImapHost,
-                ImapPort = account.ImapPort,
-                SmtpHost = account.SmtpHost,
-                SmtpPort = account.SmtpPort,
-                CalDavHost = account.CalDavHost,
-                CalDavPort = account.CalDavPort,
-                EncryptedPassword = decryptedPassword
-            };
-
-            var savedMessage = await _smtpService.SaveDraftAsync(accountWithPassword, message, attachments);
+            var savedMessage = await _smtpService.SaveDraftAsync(account, message, attachments);
 
             _logger.Information("Draft saved with UID {Uid}", savedMessage.Uid);
             return savedMessage;
@@ -97,22 +64,7 @@ public class EmailSendService
         {
             _logger.Information("Replying to email {Subject}", originalMessage.Subject);
 
-            var decryptedPassword = _credentialStore.Decrypt(account.EncryptedPassword);
-            var accountWithPassword = new MailAccount
-            {
-                Id = account.Id,
-                Email = account.Email,
-                DisplayName = account.DisplayName,
-                ImapHost = account.ImapHost,
-                ImapPort = account.ImapPort,
-                SmtpHost = account.SmtpHost,
-                SmtpPort = account.SmtpPort,
-                CalDavHost = account.CalDavHost,
-                CalDavPort = account.CalDavPort,
-                EncryptedPassword = decryptedPassword
-            };
-
-            await _smtpService.SendReplyAsync(accountWithPassword, originalMessage, replyMessage, attachments);
+            await _smtpService.SendReplyAsync(account, originalMessage, replyMessage, attachments);
 
             originalMessage.Flags |= Core.Enums.EmailFlag.Answered;
             await _emailRepository.UpdateMessageAsync(originalMessage);
@@ -132,22 +84,7 @@ public class EmailSendService
         {
             _logger.Information("Forwarding email {Subject}", originalMessage.Subject);
 
-            var decryptedPassword = _credentialStore.Decrypt(account.EncryptedPassword);
-            var accountWithPassword = new MailAccount
-            {
-                Id = account.Id,
-                Email = account.Email,
-                DisplayName = account.DisplayName,
-                ImapHost = account.ImapHost,
-                ImapPort = account.ImapPort,
-                SmtpHost = account.SmtpHost,
-                SmtpPort = account.SmtpPort,
-                CalDavHost = account.CalDavHost,
-                CalDavPort = account.CalDavPort,
-                EncryptedPassword = decryptedPassword
-            };
-
-            await _smtpService.SendForwardAsync(accountWithPassword, originalMessage, forwardMessage, attachments);
+            await _smtpService.SendForwardAsync(account, originalMessage, forwardMessage, attachments);
 
             originalMessage.Flags |= Core.Enums.EmailFlag.Forwarded;
             await _emailRepository.UpdateMessageAsync(originalMessage);

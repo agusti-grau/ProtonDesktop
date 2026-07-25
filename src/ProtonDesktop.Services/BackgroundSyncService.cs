@@ -32,7 +32,6 @@ public class BackgroundSyncService : IBackgroundSyncService
     private readonly IImapSyncService _imapSyncService;
     private readonly ISmtpService _smtpService;
     private readonly ICalDavSyncService _calDavSyncService;
-    private readonly ICredentialStore _credentialStore;
     private readonly ILogger _logger;
     private Timer? _syncTimer;
     private bool _isSyncing;
@@ -51,7 +50,6 @@ public class BackgroundSyncService : IBackgroundSyncService
         IImapSyncService imapSyncService,
         ISmtpService smtpService,
         ICalDavSyncService calDavSyncService,
-        ICredentialStore credentialStore,
         ILogger logger)
     {
         _emailRepository = emailRepository;
@@ -60,7 +58,6 @@ public class BackgroundSyncService : IBackgroundSyncService
         _imapSyncService = imapSyncService;
         _smtpService = smtpService;
         _calDavSyncService = calDavSyncService;
-        _credentialStore = credentialStore;
         _logger = logger;
     }
 
@@ -156,22 +153,7 @@ public class BackgroundSyncService : IBackgroundSyncService
     {
         _logger.Information("Syncing account {Email}", account.Email);
 
-        var decryptedPassword = _credentialStore.Decrypt(account.EncryptedPassword);
-        var accountWithPassword = new Core.Models.MailAccount
-        {
-            Id = account.Id,
-            Email = account.Email,
-            DisplayName = account.DisplayName,
-            ImapHost = account.ImapHost,
-            ImapPort = account.ImapPort,
-            SmtpHost = account.SmtpHost,
-            SmtpPort = account.SmtpPort,
-            CalDavHost = account.CalDavHost,
-            CalDavPort = account.CalDavPort,
-            EncryptedPassword = decryptedPassword
-        };
-
-        if (!await _imapSyncService.ConnectAsync(accountWithPassword))
+        if (!await _imapSyncService.ConnectAsync(account))
         {
             _logger.Error("Failed to connect to IMAP for account {Email}", account.Email);
             return;
@@ -179,7 +161,7 @@ public class BackgroundSyncService : IBackgroundSyncService
 
         try
         {
-            var folders = await _imapSyncService.SyncFoldersAsync(accountWithPassword);
+            var folders = await _imapSyncService.SyncFoldersAsync(account);
             foreach (var folder in folders)
             {
                 var existingFolder = await _emailRepository.GetFolderByPathAsync(account.Id, folder.Path);
@@ -220,7 +202,7 @@ public class BackgroundSyncService : IBackgroundSyncService
 
             await _emailRepository.UpdateUnreadCountsAsync(account.Id);
 
-            var calendars = await _calDavSyncService.SyncCalendarsAsync(accountWithPassword);
+            var calendars = await _calDavSyncService.SyncCalendarsAsync(account);
             foreach (var calendar in calendars)
             {
                 var existingCalendar = await _calendarRepository.GetCalendarByIdAsync(calendar.Id);

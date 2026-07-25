@@ -14,13 +14,15 @@ public class ImapSyncService : IImapSyncService
 {
     private ImapClient? _client;
     private readonly ILogger _logger;
+    private readonly ICredentialStore _credentialStore;
     private readonly string _attachmentStoragePath;
 
     public bool IsConnected => _client?.IsConnected ?? false;
 
-    public ImapSyncService(ILogger logger)
+    public ImapSyncService(ILogger logger, ICredentialStore credentialStore)
     {
         _logger = logger;
+        _credentialStore = credentialStore;
         _attachmentStoragePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "ProtonDesktop",
@@ -47,16 +49,22 @@ public class ImapSyncService : IImapSyncService
             };
 
             await _client.ConnectAsync(account.ImapHost, account.ImapPort, SecureSocketOptions.StartTls);
-            await _client.AuthenticateAsync(account.Email, account.EncryptedPassword);
+
+            var password = _credentialStore.Decrypt(account.EncryptedPassword);
+            await _client.AuthenticateAsync(account.Email, password);
+
             _logger.Information("Connected to IMAP {Host}:{Port}", account.ImapHost, account.ImapPort);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Failed to connect to IMAP");
+            _logger.Error(ex, "Failed to connect to IMAP {Host}:{Port} - {Message}", account.ImapHost, account.ImapPort, ex.Message);
+            LastError = ex.Message;
             return false;
         }
     }
+
+    public string? LastError { get; private set; }
 
     public Task DisconnectAsync()
     {

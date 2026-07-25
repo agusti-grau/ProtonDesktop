@@ -9,20 +9,17 @@ public class EmailSyncService
     private readonly IImapSyncService _imapService;
     private readonly IEmailRepository _emailRepository;
     private readonly IAccountRepository _accountRepository;
-    private readonly ICredentialStore _credentialStore;
     private readonly ILogger _logger;
 
     public EmailSyncService(
         IImapSyncService imapService,
         IEmailRepository emailRepository,
         IAccountRepository accountRepository,
-        ICredentialStore credentialStore,
         ILogger logger)
     {
         _imapService = imapService;
         _emailRepository = emailRepository;
         _accountRepository = accountRepository;
-        _credentialStore = credentialStore;
         _logger = logger;
     }
 
@@ -41,22 +38,7 @@ public class EmailSyncService
         {
             _logger.Information("Syncing account {Email}", account.Email);
 
-            var decryptedPassword = _credentialStore.Decrypt(account.EncryptedPassword);
-            var accountWithPassword = new MailAccount
-            {
-                Id = account.Id,
-                Email = account.Email,
-                DisplayName = account.DisplayName,
-                ImapHost = account.ImapHost,
-                ImapPort = account.ImapPort,
-                SmtpHost = account.SmtpHost,
-                SmtpPort = account.SmtpPort,
-                CalDavHost = account.CalDavHost,
-                CalDavPort = account.CalDavPort,
-                EncryptedPassword = decryptedPassword
-            };
-
-            if (!await _imapService.ConnectAsync(accountWithPassword))
+            if (!await _imapService.ConnectAsync(account))
             {
                 _logger.Error("Failed to connect to IMAP for account {Email}", account.Email);
                 return;
@@ -64,7 +46,7 @@ public class EmailSyncService
 
             try
             {
-                var folders = await _imapService.SyncFoldersAsync(accountWithPassword);
+                var folders = await _imapService.SyncFoldersAsync(account);
                 foreach (var folder in folders)
                 {
                     var existingFolder = await _emailRepository.GetFolderByPathAsync(account.Id, folder.Path);

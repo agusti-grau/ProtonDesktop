@@ -13,10 +13,12 @@ namespace ProtonDesktop.Infrastructure.Protocols;
 public class SmtpService : ISmtpService
 {
     private readonly ILogger _logger;
+    private readonly ICredentialStore _credentialStore;
 
-    public SmtpService(ILogger logger)
+    public SmtpService(ILogger logger, ICredentialStore credentialStore)
     {
         _logger = logger;
+        _credentialStore = credentialStore;
     }
 
     public async Task SendAsync(MailAccount account, EmailMessage message, IEnumerable<EmailAttachment>? attachments = null)
@@ -34,7 +36,10 @@ public class SmtpService : ISmtpService
             }
 
             await client.ConnectAsync(account.SmtpHost, account.SmtpPort, SecureSocketOptions.StartTls);
-            await client.AuthenticateAsync(account.Email, account.EncryptedPassword);
+
+            var password = _credentialStore.Decrypt(account.EncryptedPassword);
+            await client.AuthenticateAsync(account.Email, password);
+
             await client.SendAsync(mimeMessage);
             await client.DisconnectAsync(true);
 
@@ -65,7 +70,9 @@ public class SmtpService : ISmtpService
             }
 
             await client.ConnectAsync(account.ImapHost, account.ImapPort, SecureSocketOptions.StartTls);
-            await client.AuthenticateAsync(account.Email, account.EncryptedPassword);
+
+            var password = _credentialStore.Decrypt(account.EncryptedPassword);
+            await client.AuthenticateAsync(account.Email, password);
 
             var draftsFolder = client.GetFolder(SpecialFolder.Drafts);
             await draftsFolder.OpenAsync(FolderAccess.ReadWrite);

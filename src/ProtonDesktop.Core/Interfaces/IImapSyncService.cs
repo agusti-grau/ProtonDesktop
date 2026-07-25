@@ -15,4 +15,5 @@ public interface IImapSyncService
     Task<IEnumerable<EmailAttachment>> DownloadAttachmentsAsync(EmailMessage message, EmailFolder folder);
     Task UpdateFlagsAsync(EmailFolder folder, string uid, EmailFlag flags);
     bool IsConnected { get; }
+    string? LastError { get; }
 }

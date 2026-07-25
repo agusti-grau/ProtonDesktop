@@ -89,7 +89,10 @@ public partial class AddAccountViewModel : ObservableObject
             }
             else
             {
-                StatusMessage = "Connection failed. Check host, port and credentials.";
+                var detail = _imapSyncService.LastError;
+                StatusMessage = string.IsNullOrEmpty(detail)
+                    ? "Connection failed. Check host, port and credentials."
+                    : $"Connection failed: {detail}";
             }
         }
         catch (Exception ex)
